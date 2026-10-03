@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Debrid</title>
+<style>
+  :root {
+    --bg: #f4f4f4; --card: #ffffff; --text: #111111; --muted: #666666; --border: #d6d6d6;
+    --accent: #111111; --on-accent: #ffffff; --danger: #c62828; --ok: #2e7d32; --warn: #a15c00; --bar: #e4e4e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000; --card: #121212; --text: #f2f2f2; --muted: #9a9a9a; --border: #2e2e2e;
+      --accent: #f2f2f2; --on-accent: #000000; --danger: #ef5350; --ok: #66bb6a; --warn: #ffb74d; --bar: #2a2a2a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { accent-color: var(--accent); color-scheme: light dark; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 4px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); display: inline-block; }
+  .dot.off { background: var(--danger); }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .metric { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .metric b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .metric span { color: var(--muted); font-size: 12px; }
+  .url { display: flex; gap: 8px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+  .url code { flex: 1 1 260px; overflow-wrap: anywhere; background: var(--bg); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .warn { color: var(--warn); }
+  button { font: inherit; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; border-top: 0; }
+  .progress { height: 6px; background: var(--bar); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .progress > div { height: 100%; background: var(--accent); }
+  .name { overflow-wrap: anywhere; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  input[type=text], input[type=number], select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 100%; }
+  textarea { min-height: 70px; font-family: ui-monospace, monospace; font-size: 13px; }
+  .form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; }
+  .form label { display: block; font-size: 13px; color: var(--muted); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--text) !important; }
+  pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; max-height: 320px; overflow: auto; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .hidden { display: none; }
+  .msg { margin-top: 8px; font-size: 13px; }
+  @media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1><span id="dot" class="dot off"></span> Local Debrid <span class="muted" id="version"></span></h1>
+
+  <section>
+    <h2>Instalar o addon</h2>
+    <div id="urls" class="muted">Carregando…</div>
+    <p id="tlsWarning" class="warn hidden"></p>
+    <p id="restartWarning" class="warn hidden">Algumas configurações só valem após reiniciar. <button id="restartBtn">Reiniciar servidor</button></p>
+  </section>
+
+  <section>
+    <h2>Estado</h2>
+    <div class="grid">
+      <div class="metric"><b id="mDown">–</b><span>download</span></div>
+      <div class="metric"><b id="mUp">–</b><span>upload</span></div>
+      <div class="metric"><b id="mPeers">–</b><span>peers conectados</span></div>
+      <div class="metric"><b id="mSessions">–</b><span>sessões / conexões</span></div>
+      <div class="metric"><b id="mCache">–</b><span>cache usado</span></div>
+      <div class="metric"><b id="mFree">–</b><span>espaço livre</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Filtros de resolução</h2>
+    <p class="muted">Quais resoluções aparecem na lista de streams do Stroku/Stremio.</p>
+    <div class="actions" id="resolutionFilter">
+      <label class="check"><input type="checkbox" data-res="4k"> 4K</label>
+      <label class="check"><input type="checkbox" data-res="1440p"> 1440p</label>
+      <label class="check"><input type="checkbox" data-res="1080p"> 1080p</label>
+      <label class="check"><input type="checkbox" data-res="720p"> 720p</label>
+      <label class="check"><input type="checkbox" data-res="sd"> SD (480p ou menos)</label>
+      <label class="check"><input type="checkbox" data-res="unknown"> Resolução desconhecida</label>
+    </div>
+    <div class="form" style="margin-top:10px">
+      <div><label>Máximo de streams por resolução (0 = sem limite)<input type="number" min="0" id="maxPerResolution"></label></div>
+    </div>
+    <p><button class="primary" id="saveFilters">Salvar filtros</button></p>
+    <div id="filtersResult" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Sessões</h2>
+    <div id="sessions" class="muted">Nenhuma sessão ativa.</div>
+  </section>
+
+  <section>
+    <h2>Abrir um magnet manualmente</h2>
+    <div class="form">
+      <div style="grid-column: 1 / -1"><label>Magnet ou info-hash<input type="text" id="magnet" placeholder="magnet:?xt=urn:btih:…"></label></div>
+      <div><label>Temporada (opcional)<input type="number" id="season" min="0"></label></div>
+      <div><label>Episódio (opcional)<input type="number" id="episode" min="0"></label></div>
+    </div>
+    <p><button class="primary" id="openMagnet">Criar sessão</button></p>
+    <div id="magnetResult" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Cache</h2>
+    <div id="cacheInfo" class="muted"></div>
+    <p class="actions">
+      <button id="clearInactive">Limpar cache inativo</button>
+      <button id="clearAll" class="danger">Encerrar sessões e limpar tudo</button>
+    </p>
+    <div id="cacheResult" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Configurações</h2>
+    <div class="form" id="configForm">
+      <div><label>Nome do addon<input type="text" data-k="addonName"></label></div>
+      <div><label>Porta (reinício)<input type="number" data-k="port" data-num></label></div>
+      <div><label>Token de acesso (vazio = desativado)<input type="text" data-k="accessToken"></label></div>
+      <div><label>HTTPS (reinício)
+        <select data-k="tls.mode"><option value="localIp">local-ip.sh (automático)</option><option value="custom">Certificado próprio</option><option value="off">Desativado</option></select></label></div>
+      <div style="grid-column: 1 / -1"><label>Fontes de torrents — addons Stremio, um por linha: <code>Nome | URL do manifest.json</code><textarea data-k="upstreams"></textarea></label></div>
+      <div><label>Máximo de streams listados<input type="number" data-k="maxStreams" data-num min="1"></label></div>
+      <div><label>Tamanho máximo do arquivo (GB, 0 = sem limite)<input type="number" step="0.1" data-k="maxFileSizeGb" data-num></label></div>
+      <div><label class="check"><input type="checkbox" data-k="hideIncompatible"> Esconder releases incompatíveis com a TV</label>
+           <label class="check"><input type="checkbox" data-k="hideLowQuality"> Esconder CAM/TS/screener</label>
+           <label class="check"><input type="checkbox" data-k="lanOnly"> Aceitar apenas a rede local</label></div>
+      <div><label>Resolução máxima da TV
+        <select data-k="device.maxResolution" data-num><option value="720">720p</option><option value="1080">1080p</option><option value="2160">4K</option></select></label>
+           <label class="check"><input type="checkbox" data-k="device.hevc"> HEVC/H.265</label>
+           <label class="check"><input type="checkbox" data-k="device.av1"> AV1</label>
+           <label class="check"><input type="checkbox" data-k="device.vp9"> VP9</label></div>
+      <div><label class="check"><input type="checkbox" data-k="device.hdr10"> HDR10</label>
+           <label class="check"><input type="checkbox" data-k="device.dolbyVision"> Dolby Vision</label>
+           <label class="check"><input type="checkbox" data-k="device.dts"> Áudio DTS (receiver compatível)</label>
+           <label class="check"><input type="checkbox" data-k="device.truehd"> Áudio TrueHD</label></div>
+      <div><label>Encerrar sessão sem uso após (min)<input type="number" data-k="cache.idleSessionMinutes" data-num min="1"></label>
+           <label class="check"><input type="checkbox" data-k="cache.deleteOnSessionEnd"> Apagar o arquivo ao encerrar a sessão</label></div>
+      <div><label>Apagar cache não usado após (horas, 0 = nunca)<input type="number" step="0.5" data-k="cache.ttlHours" data-num></label>
+           <label>Tamanho máximo do cache (GB, 0 = sem limite)<input type="number" step="0.5" data-k="cache.maxSizeGb" data-num></label></div>
+      <div><label class="check"><input type="checkbox" data-k="engine.enableDht"> DHT (reinício)</label>
+           <label class="check"><input type="checkbox" data-k="engine.enableUpload"> Enviar dados para outros peers (reinício)</label>
+           <label>Limite de peers por torrent (reinício)<input type="number" data-k="engine.peerLimit" data-num min="1"></label></div>
+      <div><label>Limite de download (KB/s, 0 = sem limite, reinício)<input type="number" data-k="engine.downloadLimitKbps" data-num></label>
+           <label>Limite de upload (KB/s, 0 = sem limite, reinício)<input type="number" data-k="engine.uploadLimitKbps" data-num></label></div>
+    </div>
+    <p><button class="primary" id="saveConfig">Salvar</button></p>
+    <div id="configResult" class="msg"></div>
+  </section>
+
+  <section>
+    <h2>Logs <button id="refreshLogs">Atualizar</button></h2>
+    <pre id="logs"></pre>
+  </section>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const fmtBytes = (n) => {
+  if (n == null) return "–";
+  const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0; let v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return (i ? v.toFixed(1) : v) + " " + u[i];
+};
+const fmtSpeed = (n) => fmtBytes(n || 0) + "/s";
+const ago = (ms) => {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 60) return s + " s"; if (s < 3600) return Math.round(s / 60) + " min"; return Math.round(s / 3600) + " h";
+};
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const text = await res.text();
+  let body = null; try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+  if (!res.ok) throw new Error((body && body.error) || res.status + " " + res.statusText);
+  return body;
+}
+
+function copyButton(text) {
+  const b = document.createElement("button");
+  b.textContent = "Copiar";
+  b.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); b.textContent = "Copiado"; }
+    catch (e) { prompt("Copie o endereço:", text); }
+    setTimeout(() => (b.textContent = "Copiar"), 1500);
+  };
+  return b;
+}
+
+function renderUrls(status) {
+  const box = $("urls"); box.innerHTML = ""; box.classList.remove("muted");
+  if (!status.urls.length) { box.textContent = "Nenhum endereço de rede local encontrado. Conecte o celular ao Wi-Fi."; return; }
+  for (const u of status.urls) {
+    for (const [label, url] of [["Stroku (HTTPS)", u.httpsManifest], ["Stremio / outros (HTTP)", u.httpManifest]]) {
+      if (!url) continue;
+      const row = document.createElement("div"); row.className = "url";
+      row.innerHTML = `<span class="muted" style="min-width:150px">${esc(label)}</span><code>${esc(url)}</code>`;
+      row.appendChild(copyButton(url)); box.appendChild(row);
+    }
+  }
+  const tls = status.tls;
+  const showTls = tls.mode !== "Off" && !tls.ready;
+  $("tlsWarning").classList.toggle("hidden", !showTls);
+  if (showTls) $("tlsWarning").textContent = "HTTPS indisponível (" + (tls.error || "obtendo certificado") + "). O Stroku só aceita endereços HTTPS.";
+  $("restartWarning").classList.toggle("hidden", !status.restartPending);
+}
+
+function renderSessions(list) {
+  const box = $("sessions");
+  if (!list.length) { box.className = "muted"; box.textContent = "Nenhuma sessão ativa."; return; }
+  box.className = "";
+  const rows = list.map((s) => {
+    const t = s.torrent || {};
+    const pct = Math.round((s.progress || 0) * 1000) / 10;
+    return `<tr>
+      <td class="name"><b>${esc(s.title || s.torrentName)}</b><div class="muted">${esc(s.fileName)} · ${fmtBytes(s.fileSize)}</div>
+        <div class="progress"><div style="width:${pct}%"></div></div><div class="muted">${pct}% baixado · ${fmtBytes(s.bytesServed)} enviados à TV</div></td>
+      <td class="hide-sm">${fmtSpeed(t.downloadBps)}<div class="muted">${t.peersLive ?? 0} peers</div></td>
+      <td class="hide-sm">${s.activeReaders} conexão(ões)<div class="muted">há ${ago(s.lastActivityMs)}</div></td>
+      <td><div class="actions">
+        <button data-copy="${esc(s.url)}">URL</button>
+        <button data-close="${esc(s.id)}">Encerrar</button>
+        <button class="danger" data-delete="${esc(s.id)}">Encerrar e apagar</button></div></td></tr>`;
+  }).join("");
+  box.innerHTML = `<table><thead><tr><th>Arquivo</th><th class="hide-sm">Download</th><th class="hide-sm">Atividade</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  box.querySelectorAll("[data-copy]").forEach((b) => (b.onclick = () => copyButton(b.dataset.copy).click()));
+  box.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => closeSession(b.dataset.close, false)));
+  box.querySelectorAll("[data-delete]").forEach((b) => (b.onclick = () => closeSession(b.dataset.delete, true)));
+}
+
+async function closeSession(id, deleteData) {
+  try { await api(`api/sessions/${encodeURIComponent(id)}?deleteData=${deleteData}`, { method: "DELETE" }); }
+  catch (e) { alert(e.message); }
+  refresh();
+}
+
+async function refresh() {
+  try {
+    const [status, sessions] = await Promise.all([api("api/status"), api("api/sessions")]);
+    $("dot").classList.remove("off");
+    $("version").textContent = "v" + status.version;
+    renderUrls(status);
+    $("mDown").textContent = fmtSpeed(status.engine.downloadBps);
+    $("mUp").textContent = fmtSpeed(status.engine.uploadBps);
+    $("mPeers").textContent = status.engine.peersLive;
+    $("mSessions").textContent = status.sessions + " / " + status.activeStreams;
+    $("mCache").textContent = fmtBytes(status.cacheUsedBytes) + (status.cacheLimitBytes ? " de " + fmtBytes(status.cacheLimitBytes) : "");
+    $("mFree").textContent = fmtBytes(status.freeDiskBytes);
+    renderSessions(sessions.sessions);
+  } catch (e) {
+    $("dot").classList.add("off");
+  }
+}
+
+async function refreshCache() {
+  try {
+    const c = await api("api/cache");
+    const active = c.entries.filter((e) => e.active).length;
+    $("cacheInfo").textContent = `${c.entries.length} torrent(s) em cache, ${active} em uso · ${fmtBytes(c.usedBytes)} usados · pasta ${c.dir}`;
+  } catch (e) { $("cacheInfo").textContent = e.message; }
+}
+
+async function clearCache(all) {
+  if (all && !confirm("Encerrar todas as sessões e apagar todo o cache?")) return;
+  try {
+    const r = await api("api/cache/clear" + (all ? "?all=true" : ""), { method: "POST" });
+    $("cacheResult").textContent = `${r.deleted.length} item(ns) apagado(s), ${fmtBytes(r.freedBytes)} liberados.`;
+  } catch (e) { $("cacheResult").textContent = e.message; }
+  refresh(); refreshCache();
+}
+
+let config = null;
+const getPath = (o, p) => p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+const setPath = (o, p, v) => { const ks = p.split("."); const last = ks.pop(); ks.reduce((a, k) => (a[k] ??= {}), o)[last] = v; };
+
+async function loadConfig() {
+  config = await api("api/config");
+  document.querySelectorAll("#configForm [data-k]").forEach((el) => {
+    const k = el.dataset.k;
+    if (k === "upstreams") { el.value = config.upstreams.map((u) => (u.enabled ? "" : "# ") + (u.name || "") + " | " + u.url).join("\n"); return; }
+    const v = getPath(config, k);
+    if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
+  });
+  document.querySelectorAll("[data-res]").forEach((el) => (el.checked = config.resolutions.includes(el.dataset.res)));
+  $("maxPerResolution").value = config.maxPerResolution;
+}
+
+async function saveFilters() {
+  const resolutions = [...document.querySelectorAll("[data-res]")].filter((el) => el.checked).map((el) => el.dataset.res);
+  if (!resolutions.length) { $("filtersResult").textContent = "Escolha pelo menos uma resolução."; return; }
+  try {
+    const r = await api("api/config", { method: "PUT", body: JSON.stringify({ resolutions, maxPerResolution: Number($("maxPerResolution").value || 0) }) });
+    config = r.config;
+    $("filtersResult").textContent = "Filtros salvos. Valem para a próxima busca de streams.";
+  } catch (e) { $("filtersResult").textContent = "Erro: " + e.message; }
+}
+
+async function saveConfig() {
+  const patch = {};
+  document.querySelectorAll("#configForm [data-k]").forEach((el) => {
+    const k = el.dataset.k;
+    if (k === "upstreams") {
+      const list = el.value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+        const enabled = !l.startsWith("#"); l = l.replace(/^#\s*/, "");
+        const [a, b] = l.includes("|") ? l.split("|").map((s) => s.trim()) : ["", l];
+        return { name: a, url: b, enabled };
+      });
+      setPath(patch, k, list); return;
+    }
+    let v = el.type === "checkbox" ? el.checked : el.value;
+    if ("num" in el.dataset) v = Number(v);
+    setPath(patch, k, v);
+  });
+  try {
+    const r = await api("api/config", { method: "PUT", body: JSON.stringify(patch) });
+    $("configResult").textContent = r.restartRequired ? "Salvo. Reinicie o servidor para aplicar tudo." : "Salvo.";
+    const token = r.config.accessToken;
+    if (token !== config.accessToken) {
+      location.href = (token ? "/" + token : "") + "/";
+      return;
+    }
+    config = r.config; refresh();
+  } catch (e) { $("configResult").textContent = "Erro: " + e.message; }
+}
+
+async function openMagnet() {
+  const value = $("magnet").value.trim();
+  if (!value) return;
+  const body = value.startsWith("magnet:") ? { magnet: value } : { infoHash: value };
+  const season = $("season").value, episode = $("episode").value;
+  if (season && episode) { body.season = Number(season); body.episode = Number(episode); }
+  $("magnetResult").textContent = "Buscando metadados do torrent…";
+  try {
+    const s = await api("api/sessions", { method: "POST", body: JSON.stringify(body) });
+    $("magnetResult").innerHTML = `Sessão criada: <code>${esc(s.url)}</code>`;
+    $("magnetResult").appendChild(copyButton(s.url));
+  } catch (e) { $("magnetResult").textContent = "Erro: " + e.message; }
+  refresh();
+}
+
+async function refreshLogs() {
+  try { $("logs").textContent = (await api("api/logs?lines=200")).lines.join("\n"); } catch (e) { $("logs").textContent = e.message; }
+}
+
+$("clearInactive").onclick = () => clearCache(false);
+$("clearAll").onclick = () => clearCache(true);
+$("saveConfig").onclick = saveConfig;
+$("saveFilters").onclick = saveFilters;
+$("openMagnet").onclick = openMagnet;
+$("refreshLogs").onclick = refreshLogs;
+$("restartBtn").onclick = async () => { await api("api/restart", { method: "POST" }); setTimeout(() => location.reload(), 4000); };
+
+refresh(); refreshCache(); loadConfig().catch(() => {}); refreshLogs();
+setInterval(refresh, 2000);
+setInterval(refreshCache, 15000);
+</script>
+</body>
+</html>

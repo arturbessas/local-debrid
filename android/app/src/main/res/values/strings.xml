@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Local Debrid</string>
+    <string name="dashboard">Painel</string>
+    <string name="start_server">Iniciar servidor</string>
+    <string name="stop_server">Parar servidor</string>
+    <string name="status_stopped">Servidor parado</string>
+    <string name="status_starting">Iniciando…</string>
+    <string name="status_running">Servidor ativo</string>
+    <string name="status_stopping">Parando…</string>
+    <string name="status_failed">Falha ao iniciar: %1$s</string>
+    <string name="label_https">No Stroku (HTTPS):</string>
+    <string name="label_http">No Stremio e outros clientes (HTTP):</string>
+    <string name="https_unavailable">HTTPS indisponível (veja o aviso abaixo)</string>
+    <string name="copy">Copiar</string>
+    <string name="copied">Copiado</string>
+    <string name="open_dashboard">Abrir painel (sessões, cache, configurações)</string>
+    <string name="battery">Permitir rodar com a tela bloqueada (desativar otimização de bateria)</string>
+    <string name="stats">Sessões: %1$d · Conexões abertas: %2$d\n↓ %3$s · ↑ %4$s · Peers: %5$d\nCache: %6$s · Livre: %7$s</string>
+    <string name="warning_no_wifi">O celular não está em uma rede Wi-Fi. A TV precisa estar na mesma rede.</string>
+    <string name="warning_tls">HTTPS indisponível: %1$s\nO Stroku só aceita endereços HTTPS. O certificado é obtido automaticamente quando houver internet.</string>
+    <string name="warning_restart">Algumas configurações só valem após reiniciar o servidor.</string>
+    <string name="notification_channel">Servidor</string>
+    <string name="notification_title">Local Debrid · %1$s</string>
+    <string name="notification_detail">↓ %1$s · %2$d peers · %3$d sessões</string>
+</resources>

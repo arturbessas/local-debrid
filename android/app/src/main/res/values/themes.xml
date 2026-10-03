@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">#111111</item>
+        <item name="android:colorPrimaryDark">#000000</item>
+        <item name="android:colorAccent">#111111</item>
+        <item name="android:colorControlActivated">#111111</item>
+        <item name="android:colorControlHighlight">#33000000</item>
+        <item name="android:textColorLink">#111111</item>
+    </style>
+
+    <style name="PrimaryButton" parent="@android:style/Widget.Material.Button">
+        <item name="android:backgroundTint">@color/primary_button</item>
+        <item name="android:textColor">@color/primary_button_text</item>
+    </style>
+</resources>

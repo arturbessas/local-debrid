@@ -1,0 +1,15 @@
+/target/
+/dist/
+/localdebrid-data/
+/.dev-data/
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/third_party/*/build/
+android/app/src/main/jniLibs/
+android/local.properties
+android/keystore.properties
+android/keystore/
+.DS_Store
+__pycache__/

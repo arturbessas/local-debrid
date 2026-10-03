@@ -1,0 +1,27 @@
+[package]
+name = "localdebrid-jni"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "JNI bindings used by the Android app"
+
+[lib]
+name = "localdebrid"
+crate-type = ["cdylib"]
+
+[dependencies]
+localdebrid = { path = "../localdebrid" }
+jni = "0.22"
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync"] }
+tokio-util = "0.7"
+arc-swap = "1"
+parking_lot = "0.12"
+serde_json = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+rustls-platform-verifier = "0.7"
+paranoid-android = "0.2"
